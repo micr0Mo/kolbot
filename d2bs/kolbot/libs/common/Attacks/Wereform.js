@@ -8,6 +8,8 @@
 const ClassAttack = {
 	feralBoost: 0,
 	baseLL: me.getStat(sdk.stats.LifeLeech),
+	baseED: me.getStat(sdk.stats.DamagePercent),
+	maulBoost: 0,
 	useArmageddon: false,
 
 	canUseArmageddon: function () {
@@ -35,8 +37,16 @@ const ClassAttack = {
 			this.feralBoost = ((Math.floor(me.getSkill(sdk.skills.FeralRage, 1) / 2) + 3) * 4) + this.baseLL;
 		}
 
+		if (!this.maulBoost && Config.AttackSkill.includes(sdk.skills.Maul)) {
+			// amount of enhanced damage with max maul
+			this.maulBoost = ((Math.floor(me.getSkill(sdk.skills.Maul, 1) / 2) + 3) * 20) + this.baseED;
+		}
+
+		Misc.shapeShift(Config.Wereform);
+
 		if (((Config.AttackSkill[0] === sdk.skills.FeralRage && (!me.getState(sdk.states.FeralRage) || me.getStat(sdk.stats.LifeLeech) < this.feralBoost))
-			|| (Config.AttackSkill[0] === sdk.skills.Maul && !me.getState(sdk.states.Maul))
+			|| (Config.AttackSkill[0] === sdk.skills.Maul && (!me.getState(sdk.states.Maul) || me.getStat(sdk.stats.DamagePercent) < this.maulBoost))
+			|| (Config.AttackSkill[0] === sdk.skills.ShockWave && !unit.isSpecial && !unit.getState(sdk.states.Stunned))
 			|| (preattack && Config.AttackSkill[0] > 0))
 			&& Attack.checkResist(unit, Config.AttackSkill[0])
 			&& (!me.skillDelay || !Skill.isTimed(Config.AttackSkill[0]))
@@ -51,8 +61,6 @@ const ClassAttack = {
 
 			return 1;
 		}
-
-		Misc.shapeShift(Config.Wereform);
 
 		// Rebuff Armageddon
 		this.canUseArmageddon() && !me.getState(sdk.states.Armageddon) && Skill.cast(sdk.skills.Armageddon, 0);
@@ -95,6 +103,8 @@ const ClassAttack = {
 
 			break;
 		case timedSkill === sdk.skills.ShockWave && untimedSkill === sdk.skills.Maul:
+		case timedSkill === sdk.skills.Maul && untimedSkill === sdk.skills.ShockWave:
+		case timedSkill === sdk.skills.Maul && untimedSkill === sdk.skills.FireClaws:
 			if (!me.getState(sdk.states.Maul)) {
 				timedSkill = sdk.skills.Maul;
 			}
